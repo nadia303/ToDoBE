@@ -9,10 +9,7 @@ import { BoardsModule } from './boards/boards.module';
   imports: [
     BoardsModule,
     TodosModule,
-    MongooseModule.forRoot(
-      'mongodb+srv://nadyavalya:12345678Elk@cluster0.loivrto.mongodb.net/',
-      { dbName: 'ToDo' },
-    ),
+    MongooseModule.forRoot('', { dbName: 'ToDo' }),
     // MongooseModule.forRootAsync({
     //   imports: [ConfigModule],
     //   inject: [ConfigService],
