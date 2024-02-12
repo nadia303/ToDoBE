@@ -3,7 +3,7 @@ import { IsString, IsOptional, MaxLength } from 'class-validator';
 export class UpdateBoardDto {
   @IsString()
   @IsOptional()
-  @MaxLength(50)
+  @MaxLength(100)
   name?: string;
 
   @IsOptional()

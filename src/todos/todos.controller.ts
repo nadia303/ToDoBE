@@ -26,9 +26,6 @@ export class TodosController {
     @Param('boardId') boardId: string,
     @Param('todoId') todoId: string,
   ) {
-    console.log('DELETE');
-    console.log({ boardId });
-    console.log({ todoId });
     const isValidBoardId = mongoose.Types.ObjectId.isValid(boardId);
     const isValidTodoId = mongoose.Types.ObjectId.isValid(todoId);
 

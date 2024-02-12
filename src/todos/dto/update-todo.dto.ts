@@ -3,12 +3,12 @@ import { IsString, IsOptional, MaxLength } from 'class-validator';
 export class UpdateTodoDto {
   @IsString()
   @IsOptional()
-  @MaxLength(50)
+  @MaxLength(100)
   title?: string;
 
   @IsString()
   @IsOptional()
-  @MaxLength(200)
+  @MaxLength(500)
   description?: string;
 }
 
