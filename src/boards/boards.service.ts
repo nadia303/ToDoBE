@@ -36,9 +36,8 @@ export class BoardsService {
 
   async findOne(boardId: string) {
     const board = await this.boardModel.findById(boardId).populate('todos');
-
     if (!board) {
-      throw new NotFoundException('Board not found');
+      return [];
     }
 
     const formattedBoard = {
@@ -47,7 +46,7 @@ export class BoardsService {
       todos: board.todos,
     };
 
-    return formattedBoard;
+    return [formattedBoard];
   }
 
   async deleteById(id: string) {
