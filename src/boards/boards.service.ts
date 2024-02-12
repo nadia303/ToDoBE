@@ -1,56 +1,90 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import UpdateBoardDto from './dto/update-board.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { IBoard } from './interfaces/board.interface';
-import UpdateBoardDto from './dto/update-board.dto';
-import { TodosService } from 'src/todos/todos.service';
+import { Todo } from 'src/todos/schema/todos.schema';
+import { CreateBoardDto } from './dto/create-board.dto';
+import { Board } from './schema/boards.schema';
 
 @Injectable()
 export class BoardsService {
   constructor(
-    @InjectModel('Board') private boardModel: Model<IBoard>,
-    @Inject(TodosService) private readonly todosService: TodosService, // Inject the TodosService
+    @InjectModel(Board.name) private boardModel: Model<Board>,
+    @InjectModel(Todo.name) private todoModel: Model<Todo>,
   ) {}
 
-  async create(boardName: string) {
-    const newBoard = new this.boardModel({
-      name: boardName,
-    });
-    const result = await newBoard.save();
-
-    return result;
+  async create(board: CreateBoardDto) {
+    try {
+      const newBoard = new this.boardModel(board);
+      return await newBoard.save();
+    } catch (error) {
+      throw new NotFoundException('Board creation failed');
+    }
   }
 
   async findAll() {
-    const data = await this.boardModel.find().sort({ _id: 1 });
+    const data = await this.boardModel.find().populate('todos');
 
-    const formattedBoards = data.map(({ _id, name }) => ({
+    const formattedBoards = data.map(({ _id, name, todos }) => ({
       id: _id,
       name,
+      todos,
     }));
+
     return formattedBoards;
   }
 
+  async findOne(boardId: string) {
+    const board = await this.boardModel.findById(boardId).populate('todos');
+
+    if (!board) {
+      throw new NotFoundException('Board not found');
+    }
+
+    const formattedBoard = {
+      id: board._id,
+      name: board.name,
+      todos: board.todos,
+    };
+
+    return formattedBoard;
+  }
+
   async deleteById(id: string) {
-    await this.todosService.deleteByBoardId(id);
+    await this.todoModel.deleteMany({ boardId: id });
 
     const result = await this.boardModel.findByIdAndDelete(id);
     if (!result) {
-      throw new NotFoundException();
+      throw new NotFoundException('Board not found');
     }
 
     return result;
   }
 
   async updateById(id: string, board: UpdateBoardDto) {
-    const result = await this.boardModel.findOneAndUpdate({ _id: id }, board, {
-      new: true,
-    });
-    if (!result) {
-      throw new NotFoundException();
+    const updateData: any = {};
+
+    if (board.name !== undefined) {
+      updateData.name = board.name;
     }
-    console.log('Update');
-    console.log({ result });
+
+    if (board.todoIds !== undefined) {
+      const todoIds = board.todoIds;
+      updateData.todos = todoIds;
+    }
+
+    const result = await this.boardModel.findOneAndUpdate(
+      { _id: id },
+      updateData,
+      {
+        new: true,
+      },
+    );
+
+    if (!result) {
+      throw new NotFoundException('Board not found');
+    }
+
     return result;
   }
 }

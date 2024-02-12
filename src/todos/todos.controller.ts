@@ -2,51 +2,56 @@ import {
   Body,
   Controller,
   Delete,
-  Get,
+  HttpException,
   Param,
   Patch,
   Post,
-  Put,
-  Query,
 } from '@nestjs/common';
 import { TodosService } from './todos.service';
 import UpdateTodoDto from './dto/update-todo.dto';
-import { TodoStatus } from './types/status';
+import { CreateTodoDto } from './dto/create-todo.dto';
+import mongoose from 'mongoose';
 
 @Controller('todos')
 export class TodosController {
   constructor(private readonly todoService: TodosService) {}
 
   @Post()
-  addTodo(
-    @Body('title') todoTitle: string,
-    @Body('boardId') boardId: string,
-    @Body('description') todoDescription: string,
-    @Body('status') todoStatus: TodoStatus,
+  addTodo(@Body() createTodoDto: CreateTodoDto) {
+    return this.todoService.create(createTodoDto);
+  }
+
+  @Delete(':boardId/:todoId')
+  async deleteTodoById(
+    @Param('boardId') boardId: string,
+    @Param('todoId') todoId: string,
   ) {
-    return this.todoService.create(
-      boardId,
-      todoTitle,
-      todoDescription,
-      todoStatus,
-    );
+    console.log('DELETE');
+    console.log({ boardId });
+    console.log({ todoId });
+    const isValidBoardId = mongoose.Types.ObjectId.isValid(boardId);
+    const isValidTodoId = mongoose.Types.ObjectId.isValid(todoId);
+
+    if (!isValidBoardId || !isValidTodoId) {
+      throw new HttpException('Invalid ID', 400);
+    }
+    const deletedTodo = await this.todoService.deleteById({ boardId, todoId });
+    if (!deletedTodo) {
+      throw new HttpException('Todo not found', 400);
+    }
+    return deletedTodo;
   }
 
-  @Get('/byBoard/:id')
-  getAllTodosByBoardId(
-    @Param('id') boardId: string,
-    @Query('status') status: TodoStatus,
-  ) {
-    return this.todoService.findAllByBoardId(boardId, status);
-  }
-
-  @Delete(':id')
-  deleteTodoById(@Param('id') todoId: string) {
-    return this.todoService.deleteById(todoId);
-  }
-
-  @Put(':id')
-  updateTodo(@Param('id') todoId: string, @Body() todo: UpdateTodoDto) {
-    return this.todoService.updateById(todoId, todo);
+  @Patch(':id')
+  async patchTodo(@Param('id') todoId: string, @Body() todo: UpdateTodoDto) {
+    const isValid = mongoose.Types.ObjectId.isValid(todoId);
+    if (!isValid) {
+      throw new HttpException('Invalid ID', 400);
+    }
+    const updatedTodo = await this.todoService.patchById(todoId, todo);
+    if (!updatedTodo) {
+      throw new HttpException('Todo not found', 400);
+    }
+    return updatedTodo;
   }
 }

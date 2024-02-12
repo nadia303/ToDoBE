@@ -1,18 +1,15 @@
-import { Exclude } from '@nestjs/class-transformer';
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsOptional, MaxLength } from 'class-validator';
 
 export class UpdateTodoDto {
+  @IsString()
   @IsOptional()
-  @Exclude()
-  _id: string;
+  @MaxLength(50)
+  title?: string;
 
   @IsString()
-  @IsNotEmpty()
-  title: string;
-
-  @IsString()
-  @IsNotEmpty()
-  description: string;
+  @IsOptional()
+  @MaxLength(200)
+  description?: string;
 }
 
 export default UpdateTodoDto;

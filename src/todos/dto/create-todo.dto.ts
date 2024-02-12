@@ -1,11 +1,16 @@
-import { TodoStatus } from '../types/status';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+export class CreateTodoDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  title: string;
 
-export class Todo {
-  constructor(
-    public id: string,
-    public boardId: string,
-    public todoTitle: string,
-    public todoDescription: string,
-    public status: TodoStatus,
-  ) {}
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  description: string;
+
+  @IsString({ message: 'boardId must be a string' })
+  @IsNotEmpty({ message: 'boardId cannot be empty' })
+  boardId: string;
 }

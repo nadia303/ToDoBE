@@ -2,13 +2,15 @@ import { Module } from '@nestjs/common';
 import { BoardsController } from './boards.controller';
 import { BoardsService } from './boards.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import { BoardSchema } from './schema/boards.schema';
-import { TodosModule } from 'src/todos/todos.module';
+import { Board, BoardSchema } from './schema/boards.schema';
+import { Todo, TodoSchema } from 'src/todos/schema/todos.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: 'Board', schema: BoardSchema }]),
-    TodosModule,
+    MongooseModule.forFeature([
+      { name: Board.name, schema: BoardSchema },
+      { name: Todo.name, schema: TodoSchema },
+    ]),
   ],
   controllers: [BoardsController],
   providers: [BoardsService],

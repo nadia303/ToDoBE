@@ -1,24 +1,25 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { TodosModule } from './todos/todos.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BoardsModule } from './boards/boards.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
     BoardsModule,
     TodosModule,
-    MongooseModule.forRoot('', { dbName: 'ToDo' }),
-    // MongooseModule.forRootAsync({
-    //   imports: [ConfigModule],
-    //   inject: [ConfigService],
-    //   useFactory: async (config: ConfigService) => ({
-    //     uri: config.get<string>('env.host'), // Loaded from .ENV
-    //   }),
-    // }),
+    ConfigModule.forRoot({ isGlobal: true }),
+
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => ({
+        uri: config.get<string>('DATABASE_URI'),
+        dbName: config.get<string>('DATABASE_NAME'),
+      }),
+    }),
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}

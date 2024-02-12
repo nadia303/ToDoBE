@@ -1,40 +1,45 @@
 import { TodoStatus } from './types/status';
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, HttpException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ITodo } from './interfaces/todo.interface';
 import UpdateTodoDto from './dto/update-todo.dto';
+import { CreateTodoDto } from './dto/create-todo.dto';
+import { Todo } from './schema/todos.schema';
+import { Board } from 'src/boards/schema/boards.schema';
 
 @Injectable()
 export class TodosService {
-  constructor(@InjectModel('ToDo') private todoModel: Model<ITodo>) {}
+  constructor(
+    @InjectModel(Todo.name) private todoModel: Model<Todo>,
+    @InjectModel(Board.name) private boardModel: Model<Board>,
+  ) {}
 
-  async create(
-    boardId: string,
-    todoTitle: string,
-    todoDescription: string,
-    todoStatus: TodoStatus,
-  ) {
-    if (!boardId || !todoTitle || !todoDescription) {
+  async create(createTodoDto: CreateTodoDto) {
+    const { boardId, title, description } = createTodoDto;
+    if (!boardId || !title || !description) {
       throw new BadRequestException(
         'Invalid input data. All fields are required.',
       );
     }
-
+    const findBoard = await this.boardModel.findById(boardId);
+    if (!findBoard) {
+      throw new HttpException('Board Not Found', 404);
+    }
     const newTodo = new this.todoModel({
-      boardId: boardId,
-      title: todoTitle,
-      description: todoDescription,
-      status: todoStatus,
+      boardId,
+      title,
+      description,
+      status: TodoStatus.TODO,
     });
 
     try {
-      const result = await newTodo.save();
-      const { _id, title, description } = result;
+      const savedTodo = await newTodo.save();
+      await findBoard.updateOne({
+        $push: {
+          todos: savedTodo._id,
+        },
+      });
+      const { _id, title, description } = savedTodo;
       return { id: _id, title, description };
     } catch (error) {
       throw new BadRequestException(
@@ -43,70 +48,32 @@ export class TodosService {
     }
   }
 
-  async findAllByBoardId(boardId: string, status: TodoStatus) {
-    const todos = await this.todoModel
-      .find({ boardId, status })
-      .sort({ _id: 1 });
-    const formattedTodos = todos.map(({ _id, title, description }) => ({
-      id: _id,
-      title,
-      description,
-    }));
-    return formattedTodos;
-  }
-
-  // async findAllByStatus(boardId: string, status: string) {
-  //   const todos = await this.todoModel
-  //     .find({ boardId, status })
-  //     .sort({ _id: 1 });
-  //   const formattedTodos = todos.map(({ _id, title, description }) => ({
-  //     id: _id,
-  //     title,
-  //     description,
-  //   }));
-  //   return formattedTodos;
-  // }
-
-  async findOne(id: string) {
-    const result = await this.todoModel.findById(id);
-    if (!result) {
-      throw new NotFoundException('Todo not found');
-    }
-
-    return result;
-  }
-
-  async deleteById(id: string) {
-    const result = await this.todoModel.findByIdAndDelete(id);
-    if (!result) {
-      throw new NotFoundException('Todo not found');
-    }
-    return result;
-  }
-
-  async updateById(id: string, todoData: UpdateTodoDto) {
+  async patchById(id: string, todoData: UpdateTodoDto) {
     const result = await this.todoModel.findOneAndUpdate(
       { _id: id },
-      todoData,
-      {
-        new: true,
-      },
+      { $set: todoData },
+      { new: true },
     );
-    console.log('UPDATE');
-    console.log({ result });
-    if (!result) {
-      throw new NotFoundException('Todo not found');
-    }
-
     return result;
   }
 
-  async deleteByBoardId(boardId: string) {
-    const result = await this.todoModel.deleteMany({ boardId });
-    if (result.deletedCount === 0) {
-      throw new NotFoundException('No todos found for the given boardId.');
+  async deleteById({ boardId, todoId }) {
+    if (!boardId || !todoId) {
+      throw new BadRequestException(
+        'Invalid input data. All fields are required.',
+      );
     }
+    const findBoard = await this.boardModel.findById(boardId);
+    if (!findBoard) {
+      throw new HttpException('Board Not Found', 404);
+    }
+    const deletedTodo = await this.todoModel.findByIdAndDelete(todoId);
+    await findBoard.updateOne({
+      $pull: {
+        todos: deletedTodo._id,
+      },
+    });
 
-    return result;
+    return deletedTodo;
   }
 }
