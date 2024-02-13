@@ -28,7 +28,7 @@ export class BoardsController {
     if (boardId) {
       const isValid = mongoose.Types.ObjectId.isValid(boardId);
       if (!isValid) {
-        throw new HttpException('Invalid ID', 400);
+        return [];
       }
       return this.boardsService.findOne(boardId);
     } else {
